@@ -27,20 +27,9 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-            'birth_date' => fake()->dateTimeBetwee('-70 years', '-3 years'),
             'role' => 'user',
             'disabled' => false,
             'created_at' => fake()->dateTimeBetween('-5 years', 'now')
         ];
-    }
-
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
     }
 }
