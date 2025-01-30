@@ -11,7 +11,7 @@ class UserController extends Controller
     //Display a listing of the resource.
     public function index()
     {
-        $users = User::all();
+        $users = User::where('disabled', false)->get();
 
         return response()->json([
             'message' => 'Get all users',
@@ -45,20 +45,34 @@ class UserController extends Controller
     }
 
     //Display the specified resource.
-    public function show(User $user)
+    public function show(string $id)
     {
-        //
+        $user = User::find($id);
+
+        return response()->json([
+            'message' => 'Get user by id',
+            'data' => $user
+        ]);
     }
 
     //Update the specified resource in storage.
     public function update(Request $request, User $user)
     {
-        //
+        return response()->json([
+            'message' => 'Nothing to update'
+        ]);
     }
 
     //Remove the specified resource from storage.
-    public function destroy(User $user)
+    public function destroy(string $id)
     {
-        //
+        $user = User::find($id);
+        $user->disabled = true;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Disabled the user',
+            'data' => $user
+        ]);        
     }
 }
