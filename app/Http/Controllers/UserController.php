@@ -99,8 +99,12 @@ class UserController extends Controller
     }
 
     //Update the specified resource in storage.
-    public function update(Request $request, string $id)
+    public function update(Request $request)
     {
+        //Only can update self name
+        $ActualUser = auth()->user();
+        $id = $ActualUser->id;
+
         //Validating the request
         $validator = Validator::make($request->all(),[
             'name' => 'required | min:2 | max:90'
@@ -113,8 +117,7 @@ class UserController extends Controller
         }
         
         try{
-            //Apply CRUD operations just for available users
-            $user = User::where('disabled', false)->where('role', 'user')->where('id', $id)->first();
+            $user = User::where("id", $id)->first();
             if (!$user) {
                 throw new Exception("User not found");
             }
@@ -191,7 +194,7 @@ class UserController extends Controller
             ], 401);
         }
 
-        //Generar token
+        //Generate token
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
@@ -201,7 +204,7 @@ class UserController extends Controller
     }
 
     //Refresh Token
-    public function refreshToken(Request $request)
+    public function refreshToken()
     {
         try {
             $newToken = JWTAuth::parseToken()->refresh();
