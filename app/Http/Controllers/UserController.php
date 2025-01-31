@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Exception;
+use Validator;
 
 class UserController extends Controller
 {
@@ -12,23 +13,12 @@ class UserController extends Controller
     public function saveUser(User $user){
         try{
             $user->save();
+            return $user;
         }catch(Exception $e){
             return response()->json([
-                "message" => "Error has ocurred"
+                "message" => "Could not save the user"
             ], 500);
         }
-    }
-
-    //Method to validate searching the user by id
-    public function findUser(User $user,string $id){
-        try{
-            //Apply CRUD operations jut fot available users
-            $user = User::find($id)->where('disabled', false)->where('role', 'user');
-        }catch(Exception $e){
-            return response()->json([
-                "message" => "User not found"
-            ], 404);
-        }    
     }
 
     //Display a listing of the resource.
@@ -49,16 +39,21 @@ class UserController extends Controller
         ], 200);
     }
 
-
     //Store a newly created resource in storage.
     public function store(Request $request)
     {
         //Validating the request
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email',
+        $validator = Validator::make($request->all(),[
+            'name' => 'required | min:2 | max:90',
+            'email' => 'required | email | unique:users,email',
             'password' => 'required'
         ]);
+
+        if($validator->fails()){
+            return response()->json([
+                "message" => "Invalid request"
+            ], 400);
+        }
 
         //Check if the email already exists
         $user = User::where("email", $request->email)->first();
@@ -76,7 +71,7 @@ class UserController extends Controller
         $this->saveUser($user);
 
         return response()->json([
-            'message' => 'Store data',
+            'message' => 'Data stored',
             'data' => $user
         ], 201);
     }
@@ -84,8 +79,17 @@ class UserController extends Controller
     //Display the specified resource.
     public function show(string $id)
     {
-        $user = User::find($id)->where('disabled', false)->where('role', 'user');
-        $this->findUser($user);
+        try{
+            //Apply CRUD operations just for available users
+            $user = User::where('disabled', false)->where('role', 'user')->where('id', $id)->first();
+            if (!$user) {
+                throw new Exception("User not found");
+            }
+        }catch(Exception $e){
+            return response()->json([
+                "message" => "User not found"
+            ], 404);
+        }    
 
         return response()->json([
             'message' => 'Get user by id',
@@ -96,18 +100,33 @@ class UserController extends Controller
     //Update the specified resource in storage.
     public function update(Request $request, string $id)
     {
-        //Only allow to update the name
-        $request->validate([
-            "name" => "required"
+        //Validating the request
+        $validator = Validator::make($request->all(),[
+            'name' => 'required | min:2 | max:90'
         ]);
 
-        $user = User::find($id)->where('disabled', false)->where('role', 'user');
-        $this->findUser($user);    
-
-        $user->name = $request->name;
-
-        $this->saveUser($user);
+        if($validator->fails()){
+            return response()->json([
+                "message" => "Invalid Request"
+            ], 400);
+        }
         
+        try{
+            //Apply CRUD operations just for available users
+            $user = User::where('disabled', false)->where('role', 'user')->where('id', $id)->first();
+            if (!$user) {
+                throw new Exception("User not found");
+            }
+
+            //Only allow to update the name
+            $user->name = $request->name;
+            $this->saveUser($user);
+        }catch(Exception $e){
+            return response()->json([
+                "message" => "An error has ocurred"
+            ], 400);
+        }      
+
         return response()->json([
             "message" => "Data Updated",
             "data" => $user
@@ -117,13 +136,21 @@ class UserController extends Controller
     //Disable the specified resource from storage.
     public function destroy(string $id)
     {
-        $user = User::find($id)->where('disabled', false)->where('role', 'user');
-        $this->findUser($user);
+        try{
+            //Apply CRUD operations just for available users
+            $user = User::where('disabled', false)->where('role', 'user')->where('id', $id)->first();
+            if (!$user) {
+                throw new Exception("User not found");
+            }
 
-        $user->disabled = true;
-        
-        $this->saveUser($user);
-        
+            $user->disabled = true;
+            $this->saveUser($user);
+        }catch(Exception $e){
+            return response()->json([
+                "message" => "User not found"
+            ], 404);
+        }      
+
         return response()->json([
             'message' => 'Disabled the user',
             'data' => $user
