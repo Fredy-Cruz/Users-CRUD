@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Exception;
 use Validator;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserController extends Controller
 {
@@ -156,4 +157,61 @@ class UserController extends Controller
             'data' => $user
         ], 200);        
     } 
+
+    //Login
+    public function login(Request $request){
+
+        //Validating the request
+        $validator = Validator::make($request->all(),[
+            'email' => 'required',
+            'password' => 'required'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                "message" => "Invalid request"
+            ], 400);
+        }
+        
+        /* $credentials = $request->only("email", "password"); */
+        $credentials = $request;
+
+        //Verifying email
+        $user = User::where("email", $credentials["email"])->first();
+        if(!$user){
+            return response()->json([
+                "message" => "Invalid credentials"
+            ], 401);
+        }
+
+        //Verifying password
+        if(!password_verify($credentials["password"], $user->password)){
+            return response()->json([
+                "message" => "Invalid credentials"
+            ], 401);
+        }
+
+        //Generar token
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json([
+            "message" => "Login succes",
+            "data" => $token
+        ]);    
+    }
+
+    //Refresh Token
+    public function refreshToken(Request $request)
+    {
+        try {
+            $newToken = JWTAuth::parseToken()->refresh();
+            return response()->json([
+                'token' => $newToken
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Could not refresh token'
+            ], 500);
+        }
+    }
 }
